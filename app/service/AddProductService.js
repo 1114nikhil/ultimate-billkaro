@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BASE_URL, ADD_PRODUCT } from '../url/ConstantURL';
+import { ADD_PRODUCT, BASE_URL } from '../url/ConstantURL';
 
 const addProductService = async (payload) => {
   try {
-    var jsonRequest = JSON.stringify({
+    let jsonRequest = JSON.stringify({
       data: {
         salesOrder: payload,
       },
@@ -12,7 +12,7 @@ const addProductService = async (payload) => {
     const accessToken = await AsyncStorage.getItem('accessToken');
     console.log("Sending token ", accessToken);
 
-    var headers = {
+    let headers = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,
     };

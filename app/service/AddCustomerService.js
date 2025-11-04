@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {BASE_URL,ADD_CUSTOMER} from '../url/ConstantURL';
-import axios from 'axios';
+import { ADD_CUSTOMER, BASE_URL } from '../url/ConstantURL';
 
 const addCustomerService = async (formData) =>{
     try {
@@ -26,7 +25,7 @@ const addCustomerService = async (formData) =>{
         //             "addressLine2": "banglore"
              
 
-        var jsonRequest = JSON.stringify(
+        let jsonRequest = JSON.stringify(
             {
                 data:{
                     customer: {

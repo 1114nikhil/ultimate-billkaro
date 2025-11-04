@@ -100,7 +100,7 @@ const ProductService = async () => {
     // await AsyncStorage.setItem('productData', JSON.stringify(data));
     return data
   } catch (error) {
-    //  console.error(error);
+     console.error(error);
   }
 }
 

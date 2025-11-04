@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 // import ddown from "../../assets/json-request/ddown.json"
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { FlatList, TextInput } from 'react-native-gesture-handler';
-import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/dist/AntDesign';
+// import Icon from 'react-native-vector-icons/dist/AntDesign';
+import { AntDesign as Icon } from '@expo/vector-icons';
 import { Button } from '../app-widget';
 import Form from './component/Form';
 
@@ -217,6 +218,7 @@ const SalesScreen = () => {
         setProductList(productList.itemList);
         setProducts(productList.itemList);
       } catch (error) {
+        console.log(error)
         console.error('Error fetching or processing data:', error);
       }
     }

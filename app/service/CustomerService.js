@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {BASE_URL,ADD_CUSTOMER,PRE_ADD_CUSTOMER,CUSTOMER_CUST_CODE,EDIT_CUSTOMER} from '../url/ConstantURL';
 import axios from 'axios';
+import { ADD_CUSTOMER, BASE_URL, CUSTOMER_CUST_CODE, EDIT_CUSTOMER, PRE_ADD_CUSTOMER } from '../url/ConstantURL';
 
 const CustomerService = () => {
 
@@ -33,7 +33,7 @@ const preAdd =async() => {
 }
 const addCustomer = async (formData) =>{
   try {  
-      var jsonRequest = JSON.stringify(
+      let jsonRequest = JSON.stringify(
           {
               data:{
                   customer: {
@@ -64,12 +64,14 @@ const addCustomer = async (formData) =>{
           body: jsonRequest
       });
        const data = await response.json();
+       console.log("Got data===>", data);
      if (data.result.errNo!==200) {
        throw new Error(data.message);
        
      }
      return data;
    } catch (error) {
+    console.log(error)
      throw new Error(error);
    }
 }
@@ -94,7 +96,7 @@ const custCodeService = async(custCode) =>{
 
 const editCustomer = async(custCode, formData) =>{
   try {
-    var jsonRequest =       {
+    let jsonRequest =       {
           data:{
               customer: {
                 custCode: formData.custCode,
@@ -102,7 +104,6 @@ const editCustomer = async(custCode, formData) =>{
                       typNo: 1,
                       acCode: "115",
                       grpNo: 1,
-                      typNo: 1,
                   actAddress: [
                       {
                           rowStatus: "update",
@@ -132,4 +133,4 @@ const editCustomer = async(custCode, formData) =>{
     console.log("editCustomer Error:", error);
   }
 }
-export { CustomerService,addCustomer,preAdd,custCodeService,editCustomer};
+export { addCustomer, custCodeService, CustomerService, editCustomer, preAdd };
