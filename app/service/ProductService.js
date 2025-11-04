@@ -1,13 +1,13 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BASE_URL, PRODUCT_LIST, PRE_ADD_PRODUCT_ORDER , ADD_PRODUCT} from '../url/ConstantURL';
 import axios from 'axios';
+import { ADD_PRODUCT, BASE_URL, PRE_ADD_PRODUCT_ORDER, PRODUCT_LIST } from '../url/ConstantURL';
 
 const addProductService = async(payload)=>{
   try{
 
       
-  var jsonRequest = JSON.stringify(
+  let jsonRequest = JSON.stringify(
       {
           data:{
               salesOrder: payload
@@ -18,7 +18,7 @@ const addProductService = async(payload)=>{
       console.log("Sending token ", accessToken)
       console.log("Sending Useranme ", userName)
       
-      var headers = {
+      let headers = {
           'Content-Type': 'application/json',
          
              Authorization: `Bearer ${accessToken}`,
@@ -104,4 +104,4 @@ const ProductService = async () => {
   }
 }
 
-export {ProductService,addProductService,PreAddOrderService}
+export { addProductService, PreAddOrderService, ProductService };

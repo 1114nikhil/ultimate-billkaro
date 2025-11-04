@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, PermissionsAndroid, TouchableOpacity, StyleSheet } from 'react-native';
-import MapView, { Marker, Callout } from 'react-native-maps';
-import Geolocation from 'react-native-geolocation-service';
-import { fetchGeographData } from './../service/GeographicService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location'; // ✅ Use Expo Location API
+import { useEffect, useRef, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
+import { fetchGeographData } from './../service/GeographicService';
 
 const Map = () => {
   const mapRef = useRef(null);
@@ -14,28 +14,17 @@ const Map = () => {
 
   useEffect(() => {
     requestPermissionsAndLoadData();
-    // getLocation();
   }, []);
 
   const requestPermissionsAndLoadData = async () => {
     try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-        {
-          title: 'Geo-Location Permission',
-          message: 'App needs your current Location',
-          buttonNeutral: 'Ask Me Later',
-          buttonNegative: 'Cancel',
-          buttonPositive: 'OK',
-        }
-      );
-
-      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        // console.log('Location permission granted. Fetching data...');
-        getLocation();
-      } else {
-        console.log('Location permission denied');
+      // ✅ Request permission using Expo's API
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('Permission to access location was denied');
+        return;
       }
+      getLocation();
     } catch (err) {
       console.warn(err);
     }
@@ -44,13 +33,11 @@ const Map = () => {
   const retrieveUserData = async () => {
     try {
       const storedData = await AsyncStorage.getItem('userAndDate');
-
       if (storedData) {
         const userData = JSON.parse(storedData);
-
         fetchAndUpdateGeogrphData(userData.selectedUser, userData.selectedDate);
       } else {
-        console.log('Map No data found in AsyncStorage.');
+        console.log('Map: No data found in AsyncStorage.');
       }
     } catch (error) {
       console.error('Error retrieving data from AsyncStorage:', error);
@@ -73,24 +60,24 @@ const Map = () => {
     }
   };
 
-  const getLocation = () => {
-    
-    Geolocation.getCurrentPosition(
-      (position) => {
-        const currentLocationData = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-        setLocation(currentLocationData);
-        setCurrentLocation(currentLocationData);
-        retrieveUserData();
-        // fetchAndUpdateGeogrphData();
-      },
-      (error) => {
-        console.log(error.code, error.message);
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-    );
+  const getLocation = async () => {
+    try {
+      // ✅ Use Expo’s Location API
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      const currentLocationData = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
+
+      setLocation(currentLocationData);
+      setCurrentLocation(currentLocationData);
+      retrieveUserData();
+    } catch (error) {
+      console.error('Error getting location:', error);
+    }
   };
 
   const moveToMarker = (latitude, longitude) => {
@@ -104,25 +91,16 @@ const Map = () => {
     }
   };
 
-  // const formatDateToDdMmYyyy = (date) => {
-  //   const dd = String(date.getDate()).padStart(2, '0');
-  //   const mm = String(date.getMonth() + 1).padStart(2, '0');
-  //   const yyyy = date.getFullYear();
-
-  //   return `${dd}-${mm}-${yyyy}`;
-  // };
   const formatDateToDdMmYyyy = (date) => {
     if (typeof date === 'string') {
-      const dateObj = new Date(date); // Parse the date string to create a Date object
+      const dateObj = new Date(date);
       const dd = String(dateObj.getDate()).padStart(2, '0');
       const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
       const yyyy = dateObj.getFullYear();
-  
       return `${dd}-${mm}-${yyyy}`;
     } else {
       console.error('Invalid date object:', date);
-      // You might want to handle this error gracefully or return a default value.
-      return ''; // Return an empty string as a fallback.
+      return '';
     }
   };
 
@@ -149,28 +127,15 @@ const Map = () => {
               onLayout={() => {
                 moveToMarker(parseFloat(data.latitudeY), parseFloat(data.longitudeX));
               }}
-            >
-              {/* <Callout>
-                <Text>{ userData.selectedUser.itemLbl}</Text>
-              </Callout> */}
-            </Marker>
+            />
           ))}
 
         {currentLocation && (
-          <Marker
-            coordinate={currentLocation}
-            title="Current Location"
-            pinColor="red"
-          />
+          <Marker coordinate={currentLocation} title="Current Location" pinColor="red" />
         )}
       </MapView>
 
-      <TouchableOpacity
-        style={styles.locationButton}
-        onPress={() => {
-          requestPermissionsAndLoadData();
-        }}
-      >
+      <TouchableOpacity style={styles.locationButton} onPress={requestPermissionsAndLoadData}>
         <Text style={{ color: '#fff' }}>Get Location</Text>
       </TouchableOpacity>
     </View>
@@ -178,12 +143,6 @@ const Map = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    flex: 1,
-  },
   locationButton: {
     width: '90%',
     height: 50,
@@ -195,31 +154,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 1,
     borderRadius: 5,
-  },
-  userInfoContainer: {
-    position: 'absolute',
-    bottom: 80,
-    left: 20,
-    right: 20,
-    zIndex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    padding: 10,
-    borderRadius: 5,
-  },
-  calendarContainer: {
-    flex: 1,
-    fontSize: 30,
-    position: 'absolute',
-    borderColor: 'blue',
-    borderWidth: 1,
-    top: 20,
-    left: 20,
-    width: '40%',
-    height: 40,
-    zIndex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 1)',
-    borderRadius: 5,
-    marginRight: 10,
   },
 });
 

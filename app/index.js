@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button, Input } from './app-widget';
 import loginService from './service/LoginService';
-
 
 const LoginScreen = () => {
   const [email, setEmail] = useState('');
@@ -25,7 +25,7 @@ const LoginScreen = () => {
         setEmail('');
         setPassword('');
         // navigation.navigate('Index');
-        router.push('/Index'); 
+        router.push('/screens/'); 
       } else {
         // Handle invalid login here
         setIsUsernameInvalid(false);

@@ -1,13 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Text, TouchableOpacity, View } from 'react-native';
 import { FlatList } from 'react-native-gesture-handler';
-import { logoutService } from '../service/LogoutService';
+import logoutService from '../service/LogoutService';
 import SalesScreen from './SalesScreen';
 import TopBarNavigation from './TopBarNavigation';
-
 
 const Index = () => {
   // State to store the username
@@ -27,7 +27,7 @@ const Index = () => {
 
     if (isLogoutSuccessful) {
       // Navigate to the login screen
-      navigation.navigate('Login'); // Make sure you have a 'Login' screen defined in your navigation stack
+      router.push('/') // Make sure you have a 'Login' screen defined in your navigation stack
     } else {
       // Handle logout failure as needed
     }

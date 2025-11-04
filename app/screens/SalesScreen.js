@@ -1,25 +1,25 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, Dimensions, Modal, PermissionsAndroid, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Dimensions, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 // import ddown from "../../assets/json-request/ddown.json"
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import Geolocation from 'react-native-geolocation-service'
-import { FlatList, TextInput } from 'react-native-gesture-handler'
-import LinearGradient from 'react-native-linear-gradient'
-import Icon from 'react-native-vector-icons/dist/AntDesign'
-import { Button } from '../app-widget'
-import Form from './component/Form'
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
+import { FlatList, TextInput } from 'react-native-gesture-handler';
+import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/dist/AntDesign';
+import { Button } from '../app-widget';
+import Form from './component/Form';
 
-import axios from 'axios'
+import axios from 'axios';
 
-import moment from 'moment'
+import moment from 'moment';
 
 
-import Toast from 'react-native-root-toast'
-import addProductService from '../service/AddProductService'
-import PreAddOrderService from '../service/PreAddOrderService'
-import { ProductService } from '../service/ProductService'
-import { BASE_URL, CUSTOMER_PAGINATION } from '../url/ConstantURL'
-import InvoiceViewer from './InvoiceViewer'
+import Toast from 'react-native-root-toast';
+import addProductService from '../service/AddProductService';
+import PreAddOrderService from '../service/PreAddOrderService';
+import { ProductService } from '../service/ProductService';
+import { BASE_URL, CUSTOMER_PAGINATION } from '../url/ConstantURL';
+import InvoiceViewer from './InvoiceViewer';
 
 const SalesScreen = () => {
   const [selectedCustomer, setSelectedCustomer] = useState('Select Customer');
@@ -84,125 +84,97 @@ const SalesScreen = () => {
   }
 
   const handleSubmit = async () => {
-   
-    const granted = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-    );
-    if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-      Geolocation.getCurrentPosition(
-       async (position) => {
-          const latitude = position.coords.latitude;
-          const longitude = position.coords.longitude;
+  try {
+    // ✅ Ask for location permission
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Toast.show('Location permission denied.', { duration: Toast.durations.LONG });
+      return;
+    }
 
-           // Reverse geocode the coordinates to get the location name
-        // Geocoder.from(latitude, longitude)
-        // .then((response) => {
-        //   const address = response.results[0].formatted_address;
-        //   console.log('Address Location=====>',address);
-        // })
-        // .catch((error) => {
-        //   console.error(error);
-        // });
+    // ✅ Get current location
+    const location = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Highest,
+    });
+
+    const latitude = location.coords.latitude;
+    const longitude = location.coords.longitude;
 
     if (Object.keys(selectedCustomerData).length === 0) {
       Toast.show("Please select customer", { duration: Toast.durations.LONG });
       return;
     }
-     setIsLoading(true); 
-    // console.log("Quantities ", JSON.stringify(productQuantity));
+
+    setIsLoading(true);
 
     let selectedProductList = [];
     for (const [itemCode, qty] of Object.entries(productQuantity)) {
-
-      let curProduct = productList[0];
-      for (let i = 0; i < productList.length; i++) {
-        if (productList[i]['itmCode'] == itemCode) {
-          curProduct = productList[i];
-          break;
-        }
-      }
+      let curProduct = productList.find(p => p.itmCode === itemCode);
+      if (!curProduct) continue;
 
       let rateType = productPriceType[curProduct.itmCode];
-      let itemPrice = curProduct.itemPriceList.filter(x => x['rateType'] === rateType)[0].itmPrice;
-      let productPayload = {
-        "itmCode": curProduct['itmCode'],
-         "rateType": rateType,
-        "itmName": curProduct["itmName"],
-        "itmUnt": curProduct["itemDtlList"]["itmUnt"],
-        "discPer": 0,
-        "taxPer": 0,
-        "itmQty": parseInt(qty),
-        "itmPrice": itemPrice,
-        "rowStatus": "new"
-      }
-      // console.log("CUrrent pl ", productPayload, "PP ", selectedProductList.push)
-      selectedProductList.push(productPayload);
+      let itemPrice = curProduct.itemPriceList.find(x => x.rateType === rateType)?.itmPrice || 0;
 
-    };
+      let productPayload = {
+        itmCode: curProduct.itmCode,
+        rateType,
+        itmName: curProduct.itmName,
+        itmUnt: curProduct.itemDtlList.itmUnt,
+        discPer: 0,
+        taxPer: 0,
+        itmQty: parseInt(qty),
+        itmPrice: itemPrice,
+        rowStatus: "new",
+      };
+      selectedProductList.push(productPayload);
+    }
 
     let orderNo = await PreAddOrderService();
-    //2023-05-16T09:36:34.566Z
-    let date = moment()
-      .utcOffset('+05:30')
-      .format('YYYY-MM-DD[T]hh:mm:ss.SSS[Z]');
-    // console.log("GOt order num ", orderNo);
+    let date = moment().utcOffset('+05:30').format('YYYY-MM-DD[T]hh:mm:ss.SSS[Z]');
+
     let payload = {
       custCode: selectedCustomerData.custCode,
-      orderNo: orderNo,
+      orderNo,
       orderDate: date,
       curCode: "INR",
       latitudeY: latitude,
       longitudeX: longitude,
+      orderDtls: selectedProductList,
+    };
 
-      //phone: formData.phone,
-      orderDtls: selectedProductList
-    }
-    console.log("Submitting  ", JSON.stringify(payload));
-    // Toast.show("Submitting products " + JSON.stringify(payload), { duration: Toast.durations.LONG })
+    console.log("Submitting ", JSON.stringify(payload));
 
     try {
       const result = await addProductService(payload);
-      // Read the PDF data from the response as a Blob
       const pdfDataBlob = await result.blob();
-      // Convert the Blob data to a base64-encoded string
-      setPdfData(null);
       const pdfDatas = await new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => {
-          resolve(reader.result.split(',')[1]); // Extract the base64 data
-        };
+        reader.onload = () => resolve(reader.result.split(',')[1]);
         reader.onerror = reject;
         reader.readAsDataURL(pdfDataBlob);
       });
-      // Set the PDF data in the state for rendering
-      
+
       setPdfData(pdfDatas);
-      if (pdfDatas) {
-        setShowInvoiceViewer(true);
-      }
-      // Show success message
-      // Toast.show("Products submitted successfully!", { duration: Toast.durations.LONG });
-      
-    setSelectedCustomer('Select Customer');
-    setSelectedCustomerData({});
-    setProductQuantity({});
-    setProductPriceType({});
-    setIsLoading(false);
+      if (pdfDatas) setShowInvoiceViewer(true);
+
+      setSelectedCustomer('Select Customer');
+      setSelectedCustomerData({});
+      setProductQuantity({});
+      setProductPriceType({});
+      setIsLoading(false);
+
+      Toast.show("Products submitted successfully!", { duration: Toast.durations.LONG });
     } catch (error) {
       console.error("Error:", error);
       setIsLoading(false);
-      // Show an error message
       Toast.show("Failed to submit products.", { duration: Toast.durations.LONG });
     }
-  },
-  (error) => {
-    console.error("Error getting location: ", error);
-  },
-  { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
-);
-} else {
-console.error("Location permission denied.");
-}};
+  } catch (error) {
+    console.error("Error getting location:", error);
+    Toast.show("Unable to get location.", { duration: Toast.durations.LONG });
+  }
+};
+
 
   const [cdata, setCData] = useState([]);
   const [page, setPage] = useState(1);

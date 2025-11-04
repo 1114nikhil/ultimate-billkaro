@@ -4,7 +4,7 @@ import Geocoder from 'react-native-geocoding';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { RootSiblingParent } from 'react-native-root-siblings';
 
-//const Stack = createNativeStackNavigator();
+// const NativeStack = createNativeStackNavigator();
 Geocoder.init('AIzaSyCTA7SmV7Bl04oUmgEjHNGZK_Adre19WxI');
 
 export default function Layout() {
@@ -31,6 +31,7 @@ export default function Layout() {
     <RootSiblingParent>
       <GestureHandlerRootView style={styles.root}>
         <Stack screenOptions={{ headerShown: false }} />
+         {/* <NativeStack.Screen name="Login" component={LoginScreen} /> */}
       </GestureHandlerRootView>
     </RootSiblingParent>
   );
