@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
-import { Input, Button } from '../app-widget';
-import loginService from '../service/LoginService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { Button, Input } from './app-widget';
+import loginService from './service/LoginService';
 
-const LoginScreen = ({ navigation }) => {
+
+const LoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isUsernameInvalid, setIsUsernameInvalid] = useState(false);
@@ -23,7 +24,8 @@ const LoginScreen = ({ navigation }) => {
         await AsyncStorage.setItem('role', String(response.privileges.groupNo));
         setEmail('');
         setPassword('');
-        navigation.navigate('Index');
+        // navigation.navigate('Index');
+        router.push('/Index'); 
       } else {
         // Handle invalid login here
         setIsUsernameInvalid(false);

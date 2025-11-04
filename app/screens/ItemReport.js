@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text,  ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Button from '../app-widget/button';
-import Share from 'react-native-share';
-import RNFS from 'react-native-fs';
-import { Table, Row, Rows } from 'react-native-table-component';
 import { Buffer } from 'buffer';
-import Toast from 'react-native-root-toast'
-import {fetchItemData,exportItemData} from '../service/ItemService'
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import { useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Toast from 'react-native-root-toast';
+import { Row, Rows, Table } from 'react-native-table-component';
+import Button from '../app-widget/button';
+import { exportItemData, fetchItemData } from '../service/ItemService';
 const STORAGE_KEY = 'userAndDate';
 
 const ItemReport = () => {
@@ -114,45 +114,48 @@ const ItemReport = () => {
   };
 
 
-  const handleShare = async () => {
-    if (reportData.length === 0) {
-      // Don't attempt to download if there's no data
-      return;
+ const handleShare = async () => {
+  if (reportData.length === 0) {
+    Toast.show("No data to share!", { duration: Toast.durations.LONG });
+    return;
+  }
+
+  try {
+    const storedData = await AsyncStorage.getItem(STORAGE_KEY);
+    const userData = JSON.parse(storedData);
+    const formattedDate = formatDateToDdMmYyyy(userData.selectedDate);
+    const userId = userData.selectedUser.itemVal;
+
+    const { data } = await exportItemData(userId, formattedDate);
+    console.log("Received Excel data:", data);
+
+    if (!data) throw new Error('Empty Excel response');
+
+    // Create a file in the app’s document directory
+    const fileUri = FileSystem.documentDirectory + `ItemReports_${Date.now()}.xlsx`;
+
+    // Convert to Base64 and write file
+    await FileSystem.writeAsStringAsync(fileUri, Buffer.from(data).toString('base64'), {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+
+    // Share using Expo Sharing
+    const canShare = await Sharing.isAvailableAsync();
+    if (canShare) {
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        dialogTitle: 'Share Item Report Excel File',
+      });
+    } else {
+      Toast.show("Sharing not supported on this device", { duration: Toast.durations.LONG });
     }
 
-    try {
-      const storedData = await AsyncStorage.getItem(STORAGE_KEY);
-      const userData = JSON.parse(storedData);
-      const formattedDate = formatDateToDdMmYyyy(userData.selectedDate);
-      const userId = userData.selectedUser.itemVal;
-      const  {data}  = await exportItemData(userId,formattedDate);
-      console.log("Received Data:", data.data);
-      if (data) {
-        const tempDir = RNFS.DocumentDirectoryPath;
-        const fileName = `ItemReports_${new Date().getTime()}.xlsx`;
-        const filePath = `${tempDir}/${fileName}`;
-  
-        // Convert ArrayBuffer to base64
-        const base64Data = Buffer.from(data).toString('base64');
-  
-        // Save the base64 encoded Excel data to the file
-        await RNFS.writeFile(filePath, base64Data, 'base64');
-        const shareOptions = {
-          title: 'Share Excel File',
-          url: `file://${filePath}`, // Note the "file://" prefix
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      };
-      
-      await Share.open(shareOptions);
-  } else {
-      throw new Error('Received empty response data');
+  } catch (error) {
+    console.error('Error sharing Excel file:', error);
+    Toast.show("Failed to share Excel file", { duration: Toast.durations.LONG });
   }
-} catch (error) {
-  console.error('Error fetching, saving, or sharing data:', error);
-  throw error;
-}
-    
-  };
+};
+
 
   const handlePrevPage = () => {
     console.log(currentPage);

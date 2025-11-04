@@ -1,20 +1,19 @@
-import React, {useState} from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  ActivityIndicator,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Share from 'react-native-share';
-import RNFS from 'react-native-fs';
-import {fetchReportData, exportReportData} from '../service/ReportService';
-import XLSX from 'xlsx';
+import { Buffer } from 'buffer';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import Button from '../app-widget/button';
-import {Buffer} from 'buffer';
+import { exportReportData, fetchReportData } from '../service/ReportService';
 
 import Toast from 'react-native-root-toast';
 
@@ -130,65 +129,76 @@ const Report = () => {
       return '';
     }
   };
-  const writeLogToFile = async message => {
-    const timestamp = new Date().toISOString();
-    const logMessage = `${timestamp} - ${message}\n`;
+  const writeLogToFile = async (message) => {
+  const timestamp = new Date().toISOString();
+  const logMessage = `${timestamp} - ${message}\n`;
 
-    const logFilePath = `${RNFS.DocumentDirectoryPath}/app_log.txt`;
+  const logFilePath = FileSystem.documentDirectory + 'app_log.txt';
 
-    try {
-      if (!(await RNFS.exists(logFilePath))) {
-        // If the log file doesn't exist, create it
-        await RNFS.writeFile(logFilePath, logMessage, 'utf8');
-      } else {
-        // If the log file exists, append to it
-        await RNFS.appendFile(logFilePath, logMessage, 'utf8');
-      }
-      console.log('Log written to:', logFilePath);
-    } catch (err) {
-      console.error('Error writing to log file:', err);
+  try {
+    const fileInfo = await FileSystem.getInfoAsync(logFilePath);
+
+    if (!fileInfo.exists) {
+      await FileSystem.writeAsStringAsync(logFilePath, logMessage, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+    } else {
+      const existingLogs = await FileSystem.readAsStringAsync(logFilePath, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+      await FileSystem.writeAsStringAsync(logFilePath, existingLogs + logMessage, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
     }
-  };
+
+    console.log('Log written to:', logFilePath);
+  } catch (err) {
+    console.error('Error writing to log file:', err);
+  }
+};
+
 
   const handleShare = async () => {
-    if (reportData.length === 0) {
-      // Don't attempt to download if there's no data
-      return;
-    }
+  if (reportData.length === 0) return;
 
-    try {
-      const storedData = await AsyncStorage.getItem(STORAGE_KEY);
-      const userData = JSON.parse(storedData);
-      const formattedDate = formatDateToDdMmYyyy(userData.selectedDate);
-      const userId = userData.selectedUser.itemVal;
-      const {data} = await exportReportData(userId, formattedDate);
-      console.log('Received Data:', data.data);
-      if (data) {
-        const tempDir = RNFS.DocumentDirectoryPath;
-        const fileName = `OrderReports_${new Date().getTime()}.xlsx`;
-        const filePath = `${tempDir}/${fileName}`;
+  try {
+    const storedData = await AsyncStorage.getItem(STORAGE_KEY);
+    const userData = JSON.parse(storedData);
+    const formattedDate = formatDateToDdMmYyyy(userData.selectedDate);
+    const userId = userData.selectedUser.itemVal;
 
-        // Convert ArrayBuffer to base64
-        const base64Data = Buffer.from(data).toString('base64');
+    const { data } = await exportReportData(userId, formattedDate);
+    console.log('Received Data:', data.data);
 
-        // Save the base64 encoded Excel data to the file
-        await RNFS.writeFile(filePath, base64Data, 'base64');
+    if (data) {
+      const tempDir = FileSystem.documentDirectory;
+      const fileName = `OrderReports_${Date.now()}.xlsx`;
+      const filePath = `${tempDir}${fileName}`;
 
-        const shareOptions = {
-          title: 'Share Excel File',
-          url: `file://${filePath}`, // Note the "file://" prefix
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        };
+      // Save as base64
+      const base64Data = Buffer.from(data).toString('base64');
+      await FileSystem.writeAsStringAsync(filePath, base64Data, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
-        await Share.open(shareOptions);
+      // ✅ Share file using Expo Sharing
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(filePath, {
+          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          dialogTitle: 'Share Excel Report',
+        });
       } else {
-        throw new Error('Received empty response data');
+        console.warn('Sharing not available on this device.');
       }
-    } catch (error) {
-      console.error('Error fetching, saving, or sharing data:', error);
-      throw error;
+    } else {
+      throw new Error('Received empty response data');
     }
-  };
+  } catch (error) {
+    console.error('Error fetching, saving, or sharing data:', error);
+  }
+};
+
 
   const handlePrevPage = () => {
     console.log(currentPage);

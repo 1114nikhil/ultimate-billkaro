@@ -1,12 +1,13 @@
-import { View, Text, TouchableOpacity, Image, Animated } from 'react-native';
-import React, { useRef, useState, useEffect } from 'react';
-import { FlatList } from 'react-native-gesture-handler';
-import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import logoutService from '../service/LogoutService';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Image, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList } from 'react-native-gesture-handler';
+import { logoutService } from '../service/LogoutService';
 import SalesScreen from './SalesScreen';
 import TopBarNavigation from './TopBarNavigation';
+
 
 const Index = () => {
   // State to store the username
